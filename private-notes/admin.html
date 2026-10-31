@@ -66,10 +66,7 @@ async function start() {
 async function loadUsers() {
   users.textContent = "Loading users...";
 
-  const { data, error } = await db
-    .from("user_access")
-    .select("user_id,status,created_at")
-    .order("created_at", { ascending: false });
+  const { data, error } = await db.rpc("admin_list_users");
 
   if (error) {
     users.textContent = "Could not load users: " + error.message;
@@ -78,7 +75,7 @@ async function loadUsers() {
 
   users.replaceChildren();
 
-  if (!data.length) {
+  if (!data || !data.length) {
     users.textContent = "No users found.";
     return;
   }
@@ -87,7 +84,10 @@ async function loadUsers() {
     const item = document.createElement("section");
     item.className = "item";
 
-    const id = document.createElement("div");
+    const email = document.createElement("div");
+    email.textContent = "Email: " + (u.email || "No email");
+
+    const id = document.createElement("small");
     id.textContent = "User ID: " + u.user_id;
 
     const status = document.createElement("p");
@@ -96,14 +96,13 @@ async function loadUsers() {
     const date = document.createElement("small");
     date.textContent = "Created: " + new Date(u.created_at).toLocaleString();
 
-    item.append(id, status, date);
+    item.append(email, id, status, date);
 
     if (u.status !== "approved") {
       const approve = document.createElement("button");
       approve.className = "approve";
       approve.textContent = "Approve";
       approve.onclick = () => changeStatus(u.user_id, "approved");
-
       item.append(approve);
     }
 
@@ -112,7 +111,6 @@ async function loadUsers() {
       reject.className = "reject";
       reject.textContent = "Reject";
       reject.onclick = () => changeStatus(u.user_id, "rejected");
-
       item.append(reject);
     }
 
